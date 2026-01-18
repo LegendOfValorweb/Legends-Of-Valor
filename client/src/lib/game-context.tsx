@@ -33,18 +33,36 @@ const SESSION_KEY = "lov_session";
 const ACCOUNT_STORAGE_PREFIX = "lov_account_";
 const INVENTORY_STORAGE_PREFIX = "lov_inventory_";
 
+// Mock global data for "online" simulation on GitHub Pages
+const GLOBAL_ACCOUNTS_KEY = "lov_global_accounts";
+const GLOBAL_CHALLENGES_KEY = "lov_global_challenges";
+
 export function GameProvider({ children }: { children: ReactNode }) {
   const [account, setAccountState] = useState<Account | null>(null);
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
+  // Helper to sync local account to "global" mock storage
+  const syncToGlobal = (acc: Account) => {
+    const globalAccounts = JSON.parse(localStorage.getItem(GLOBAL_ACCOUNTS_KEY) || "[]");
+    const index = globalAccounts.findIndex((a: any) => a.username === acc.username);
+    if (index > -1) {
+      globalAccounts[index] = acc;
+    } else {
+      globalAccounts.push(acc);
+    }
+    localStorage.setItem(GLOBAL_ACCOUNTS_KEY, JSON.stringify(globalAccounts));
+  };
+
   const loadAccountData = (username: string) => {
     const savedAccount = localStorage.getItem(ACCOUNT_STORAGE_PREFIX + username);
     const savedInventory = localStorage.getItem(INVENTORY_STORAGE_PREFIX + username);
     
     if (savedAccount) {
-      setAccountState(JSON.parse(savedAccount));
+      const acc = JSON.parse(savedAccount);
+      setAccountState(acc);
+      syncToGlobal(acc);
     }
     if (savedInventory) {
       setInventory(JSON.parse(savedInventory));
@@ -71,6 +89,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
     if (acc) {
       localStorage.setItem(SESSION_KEY, JSON.stringify({ username: acc.username }));
       localStorage.setItem(ACCOUNT_STORAGE_PREFIX + acc.username, JSON.stringify(acc));
+      syncToGlobal(acc);
     } else {
       localStorage.removeItem(SESSION_KEY);
     }
