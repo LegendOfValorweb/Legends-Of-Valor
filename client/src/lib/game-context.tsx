@@ -7,7 +7,6 @@ import {
   useState,
   useEffect,
   useCallback,
-  useRef,
   ReactNode,
 } from "react";
 import type { Account, InventoryItem, Item } from "@shared/schema";
@@ -57,8 +56,12 @@ export function GameProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const savedSession = localStorage.getItem(SESSION_KEY);
     if (savedSession) {
-      const { username } = JSON.parse(savedSession);
-      loadAccountData(username);
+      try {
+        const { username } = JSON.parse(savedSession);
+        loadAccountData(username);
+      } catch (e) {
+        localStorage.removeItem(SESSION_KEY);
+      }
     }
     setIsLoading(false);
   }, []);
@@ -85,21 +88,24 @@ export function GameProvider({ children }: { children: ReactNode }) {
         username,
         password: _password,
         role,
-        gold: 1000,
+        gold: 10000,
         rubies: 0,
         soulShards: 0,
         focusedShards: 0,
         trainingPoints: 100,
+        petExp: 0,
+        runes: 0,
         pets: [],
-        npcProgress: 1,
         rank: "Novice",
-        guildDungeonFloor: 0,
-        guildWins: 0,
         wins: 0,
         losses: 0,
         stats: { Str: 10, Spd: 10, Int: 10, Luck: 10, Pot: 0 },
-        equipped: { weapon: null, armor: null, accessory1: null, accessory2: null }
-      };
+        equipped: { weapon: null, armor: null, accessory1: null, accessory2: null },
+        npcFloor: 1,
+        npcLevel: 1,
+        equippedPetId: null,
+        lastActive: new Date()
+      } as Account;
     }
 
     setAccount(acc);
@@ -143,7 +149,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
       id: Math.floor(Math.random() * 1000000).toString(),
       accountId: account.id,
       itemId: item.id,
-      stats: {}
+      stats: {},
+      purchasedAt: new Date()
     };
 
     const newInventory = [...inventory, newItem];
